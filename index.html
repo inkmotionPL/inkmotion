@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkmotion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a simple, friendly gallery. Rice-paper white, sumi-ink black, one red seal colour. Rounded "cartoon" headings. */
+:root{
+  --paper:#f7f5f0;
+  --card:#ffffff;
+  --ink:#1d1d1f;
+  --ink-soft:#64615a;
+  --seal:#d6402b;
+  --line:#e6e1d6;
+  --font-display:"Fredoka", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-body:"Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.6}
+canvas{display:block;max-width:100%}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--seal);outline-offset:3px;border-radius:6px}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;line-height:1.1;text-wrap:balance;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:clamp(16px,4vw,40px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;padding:.75em 1.4em;border-radius:14px;border:2.5px solid var(--ink);background:var(--ink);color:#fff;font:600 1rem var(--font-display);letter-spacing:.01em;text-decoration:none;cursor:pointer;box-shadow:3px 3px 0 var(--seal);transition:transform .12s, box-shadow .12s}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--seal)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--seal)}
+.btn.light{background:var(--card);color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.btn.red{background:var(--seal);border-color:var(--ink)}
+.btn.full{width:100%}
+
+/* header */
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(8px);border-bottom:2px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;height:66px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:1.5rem;text-decoration:none}
+.stamp{width:30px;height:30px;border-radius:8px;background:var(--seal);color:#fff;display:grid;place-items:center;font-size:.85rem;font-weight:700;transform:rotate(-8deg);border:2px solid var(--ink)}
+.nav ul{display:flex;gap:clamp(12px,3vw,30px);list-style:none;margin:0;padding:0;font-family:var(--font-display);font-weight:500}
+.nav ul a{text-decoration:none;color:var(--ink-soft)}
+.nav ul a:hover{color:var(--ink)}
+@media (max-width:640px){.nav ul li.hide-sm{display:none}}
+
+/* hero */
+.hero{text-align:center;padding-block:clamp(44px,7vw,80px) clamp(28px,4vw,44px)}
+.hero h1{font-size:clamp(2.4rem,6vw,4.2rem);font-weight:700}
+.hero h1 span{color:var(--seal)}
+.hero p{max-width:40ch;margin:16px auto 26px;color:var(--ink-soft);font-size:1.15rem}
+.hero .row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+/* sections */
+section{padding-block:clamp(44px,6vw,76px)}
+.title{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.title h2{font-size:clamp(1.9rem,4vw,2.6rem)}
+.title p{margin:6px 0 0;color:var(--ink-soft)}
+
+/* filters + grid */
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:2px solid var(--ink);background:var(--card);color:var(--ink);border-radius:12px;padding:.4em 1em;font:500 .98rem var(--font-display);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px}
+.card{background:var(--card);border:2.5px solid var(--ink);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;text-align:left;padding:0;font:inherit;color:inherit;box-shadow:4px 4px 0 var(--ink);transition:transform .15s, box-shadow .15s}
+.card:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.card .art{aspect-ratio:4/5;position:relative;border-bottom:2.5px solid var(--ink)}
+.card .art canvas,.card .art img{width:100%;height:100%;object-fit:cover;display:block}
+.tag{position:absolute;top:10px;left:10px;background:var(--card);border:2px solid var(--ink);font:600 .78rem var(--font-display);padding:3px 9px;border-radius:9px}
+.tag.sold{left:auto;right:10px;background:var(--seal);color:#fff}
+.card .meta{padding:12px 15px 15px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline}
+.card h3{font-size:1.2rem}
+.price{font-family:var(--font-display);font-weight:600;font-variant-numeric:tabular-nums}
+.card .sub{grid-column:1/-1;color:var(--ink-soft);font-size:.92rem}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.step{background:var(--card);border:2.5px solid var(--ink);border-radius:18px;padding:22px}
+.step .n{width:42px;height:42px;border-radius:50%;background:var(--seal);color:#fff;display:grid;place-items:center;font:700 1.2rem var(--font-display);border:2px solid var(--ink)}
+.step h3{font-size:1.25rem;margin:12px 0 4px}
+.step p{margin:0;color:var(--ink-soft)}
+@media (max-width:760px){.steps{grid-template-columns:1fr}}
+
+/* custom */
+.custom{display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;background:var(--card);border:2.5px solid var(--ink);border-radius:22px;padding:clamp(20px,4vw,32px);box-shadow:5px 5px 0 var(--ink)}
+.custom canvas{width:120px;height:120px;border-radius:16px;border:2px solid var(--ink)}
+.custom h2{font-size:clamp(1.6rem,3.5vw,2.1rem)}
+.custom p{margin:6px 0 0;color:var(--ink-soft)}
+@media (max-width:760px){.custom{grid-template-columns:1fr;text-align:left}}
+
+/* faq */
+.faq{display:grid;gap:10px;max-width:780px}
+details{background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:2px 18px}
+summary{cursor:pointer;font:600 1.08rem var(--font-display);padding:14px 0;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--seal);font-size:1.4rem;line-height:1}
+details[open] summary::after{content:"–"}
+details p{margin:0 0 16px;color:var(--ink-soft)}
+
+/* contact */
+.contact{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,5vw,56px)}
+.email-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.email-row code{background:var(--card);border:2px solid var(--ink);padding:.5em .8em;border-radius:10px;font:600 1rem var(--font-body)}
+@media (max-width:760px){.contact{grid-template-columns:1fr}}
+
+/* forms */
+form{display:grid;gap:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+label{display:block;font:600 .92rem var(--font-display);margin-bottom:4px}
+input,textarea,select{width:100%;padding:.7em .85em;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:inherit}
+input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none}
+input[aria-invalid="true"]{border-color:var(--seal)}
+textarea{min-height:90px;resize:vertical}
+.small{font-size:.9rem;color:var(--ink-soft);margin:0}
+.err{color:var(--seal);font-weight:700;font-size:.92rem;margin:0;min-height:1.2em}
+
+footer{border-top:2px solid var(--line);padding:26px 0;color:var(--ink-soft);font-size:.92rem}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* checkout dialog */
+dialog{border:2.5px solid var(--ink);border-radius:22px;padding:0;max-width:900px;width:calc(100% - 28px);background:var(--card);color:var(--ink);box-shadow:6px 6px 0 var(--ink)}
+dialog::backdrop{background:rgba(20,18,15,.55)}
+.dlg{display:grid;grid-template-columns:.9fr 1.1fr;min-height:440px}
+.dlg .art{border-right:2.5px solid var(--ink);background:var(--paper)}
+.dlg .art canvas,.dlg .art img{width:100%;height:100%;object-fit:cover;display:block}
+.dlg .art img[hidden],.dlg .art canvas[hidden]{display:none}
+.pane{padding:26px;display:flex;flex-direction:column;gap:14px;max-height:88vh;overflow:auto}
+.pane[hidden]{display:none}
+.pane h3{font-size:1.8rem}
+.kind{font:600 .9rem var(--font-display);color:var(--seal)}
+.specs{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0;font-size:.97rem}
+.specs dt{color:var(--ink-soft)}
+.specs dd{margin:0}
+.big{font:700 1.9rem var(--font-display);font-variant-numeric:tabular-nums}
+.summary{display:flex;justify-content:space-between;gap:12px;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:600}
+.close{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;border:2px solid var(--ink);background:var(--card);color:var(--ink);font-size:1.3rem;cursor:pointer;z-index:2}
+.back{background:none;border:none;color:var(--ink-soft);font:600 .95rem var(--font-display);cursor:pointer;padding:0;align-self:flex-start}
+.order-no{font:700 1.5rem var(--font-display);letter-spacing:.04em;background:var(--paper);border:2px dashed var(--ink);border-radius:12px;padding:10px 14px;text-align:center}
+.done-list{margin:0;padding-left:1.2em;color:var(--ink-soft)}
+@media (max-width:720px){.dlg{grid-template-columns:1fr}.dlg .art{border-right:none;border-bottom:2.5px solid var(--ink);aspect-ratio:16/10}}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(130px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;transition:transform .25s;z-index:60}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#top"><span class="stamp">IM</span>Inkmotion</a>
+    <ul>
+      <li><a href="#shop">Shop</a></li>
+      <li class="hide-sm"><a href="#how">How to buy</a></li>
+      <li class="hide-sm"><a href="#custom">Custom order</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <h1>Hand-painted <span>ink wash</span> art<br>and pebble art</h1>
+    <p>Every piece is made by hand, one at a time. No prints, no copies.</p>
+    <div class="row">
+      <a class="btn" href="#shop">See the art</a>
+      <a class="btn light" href="#how">How to buy</a>
+    </div>
+  </div>
+
+  <section id="shop" style="padding-top:8px">
+    <div class="wrap">
+      <div class="title">
+        <div><h2>Shop</h2><p>Click any piece to see more and buy.</p></div>
+        <div class="filters" role="group" aria-label="Show">
+          <button class="chip" aria-pressed="true" data-f="all">All</button>
+          <button class="chip" aria-pressed="false" data-f="ink">Ink wash paintings</button>
+          <button class="chip" aria-pressed="false" data-f="pebble">Pebble art</button>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="title"><div><h2>How to buy</h2><p>Three easy steps. No account needed.</p></div></div>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h3>Choose a piece</h3><p>Click the art you like and press <b>Buy now</b>.</p></div>
+        <div class="step"><div class="n">2</div><h3>Add your address</h3><p>Tell us where to send it. It takes one minute.</p></div>
+        <div class="step"><div class="n">3</div><h3>Pay safely</h3><p>Pay by card, Apple Pay or Google Pay on Revolut's secure page. We post your art within 3 days.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="custom">
+    <div class="wrap">
+      <div class="custom">
+        <canvas data-kind="pebble" data-seed="77" data-style="flowers" width="240" height="240" aria-hidden="true"></canvas>
+        <div>
+          <h2>Want something made just for you?</h2>
+          <p>A pebble art of your family, a pet, or an ink painting of a place you love. Tell me your idea and I'll send you a price.</p>
+        </div>
+        <a class="btn red" href="#contact" data-topic="Something made for me">Ask me</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="title"><div><h2>Questions</h2></div></div>
+      <div class="faq">
+        <details><summary>What is ink wash painting?</summary><p>It's an old Asian style of painting with black ink and water. Each brush stroke is done once and can't be fixed, so every painting is unique.</p></details>
+        <details><summary>What is pebble art?</summary><p>Small pictures made from real sea pebbles glued onto paper or wood, then framed. Each one uses different stones, so no two are the same.</p></details>
+        <details><summary>Is paying safe?</summary><p>Yes. Payment happens on Revolut's secure page. We never see your card details. You don't need a Revolut account.</p></details>
+        <details><summary>How much is delivery?</summary><p>Free delivery in Poland. For other countries, we'll email you the delivery price before sending.</p></details>
+        <details><summary>Can I return it?</summary><p>Yes, within 14 days if it comes back in the same condition.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap contact">
+      <div>
+        <h2 style="font-size:clamp(1.9rem,4vw,2.6rem)">Say hello</h2>
+        <p class="small" style="margin-top:8px;font-size:1rem">Questions, custom orders, or anything else. I usually reply within a day.</p>
+        <div class="email-row"><code id="emailText">hello@inkmotion.art</code><button class="btn light" id="copyEmail" type="button">Copy email</button></div>
+        <p class="small" style="margin-top:12px">Instagram: <b id="igText">@inkmotion.art</b> · Poland</p>
+      </div>
+      <form id="contactForm" novalidate>
+        <div><label for="cName">Your name</label><input id="cName" autocomplete="name"></div>
+        <div><label for="cEmail">Your email</label><input id="cEmail" type="email" autocomplete="email"></div>
+        <div><label for="cTopic">About</label>
+          <select id="cTopic"><option>A piece in the shop</option><option>Something made for me</option><option>Delivery</option><option>Other</option></select></div>
+        <div><label for="cMsg">Message</label><textarea id="cMsg"></textarea></div>
+        <p class="err" id="cErr" role="alert"></p>
+        <button class="btn" type="submit">Send message</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap"><span>© 2026 Inkmotion · Handmade in Poland</span><span>Secure payments by Revolut</span></div>
+</footer>
+
+<!-- Product + checkout -->
+<dialog id="dlg" aria-labelledby="pTitle">
+  <div style="position:relative">
+    <button class="close" id="dClose" type="button" aria-label="Close">×</button>
+    <div class="dlg">
+      <div class="art"><canvas id="dCanvas" width="720" height="900"></canvas><img id="dImg" alt="" hidden></div>
+
+      <!-- step 1: product -->
+      <div class="pane" id="paneProduct">
+        <div class="kind" id="pKind"></div>
+        <h3 id="pTitle"></h3>
+        <p style="margin:0;color:var(--ink-soft)" id="pDesc"></p>
+        <dl class="specs" id="pSpecs"></dl>
+        <div class="big" id="pPrice"></div>
+        <button class="btn red full" id="toAddress" type="button">Buy now</button>
+        <p class="small">Free delivery in Poland. Made by hand, one of a kind.</p>
+      </div>
+
+      <!-- step 2: address -->
+      <div class="pane" id="paneAddress" hidden>
+        <button class="back" type="button" data-back="paneProduct">← Back</button>
+        <h3>Where should we send it?</h3>
+        <div class="summary"><span id="sTitle"></span><span id="sPrice"></span></div>
+        <form id="addrForm" novalidate>
+          <div class="two">
+            <div><label for="aName">Full name</label><input id="aName" autocomplete="name" required></div>
+            <div><label for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email" required></div>
+          </div>
+          <div><label for="aPhone">Phone (for the courier)</label><input id="aPhone" type="tel" autocomplete="tel" required></div>
+          <div><label for="aStreet">Street and house number</label><input id="aStreet" autocomplete="street-address" required></div>
+          <div class="two">
+            <div><label for="aZip">Postcode</label><input id="aZip" autocomplete="postal-code" required></div>
+            <div><label for="aCity">City</label><input id="aCity" autocomplete="address-level2" required></div>
+          </div>
+          <div><label for="aCountry">Country</label>
+            <select id="aCountry" autocomplete="country-name">
+              <option>Poland</option><option>Germany</option><option>Czech Republic</option><option>Slovakia</option><option>Lithuania</option><option>Other EU country</option><option>Outside the EU</option>
+            </select></div>
+          <div><label for="aNote">Note (optional)</label><textarea id="aNote" placeholder="e.g. Leave with the neighbour, or a gift message"></textarea></div>
+          <div class="summary"><span>Delivery</span><span id="sShip">Free</span></div>
+          <p class="err" id="aErr" role="alert"></p>
+          <button class="btn red full" type="submit">Continue to payment</button>
+        </form>
+      </div>
+
+      <!-- step 3: pay -->
+      <div class="pane" id="panePay" hidden>
+        <button class="back" type="button" data-back="paneAddress">← Change address</button>
+        <h3>Last step: pay</h3>
+        <p style="margin:0">Your order number is:</p>
+        <div class="order-no" id="orderNo"></div>
+        <ol class="done-list">
+          <li>Press the button below to open Revolut's secure payment page.</li>
+          <li>If it asks for an order number, type the one above.</li>
+          <li>After paying, we'll email you when your art is posted.</li>
+        </ol>
+        <div class="summary"><span id="pTotalLabel">Total</span><span id="pTotal"></span></div>
+        <a class="btn red full" id="payBtn" href="#" rel="noopener" target="_blank">Pay with Revolut</a>
+        <p class="err" id="payErr" role="alert"></p>
+        <p class="small" id="sendNote"></p>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<!-- Netlify reads these hidden forms when the site is published, so orders and messages reach you. Don't delete. -->
+<form name="order" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input name="bot-field"><input name="order-number"><input name="artwork"><input name="price"><input name="name"><input name="email"><input name="phone"><input name="address"><textarea name="note"></textarea>
+</form>
+<form name="contact" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input name="bot-field"><input name="name"><input name="email"><input name="topic"><textarea name="message"></textarea>
+</form>
+
+<script>
+/* Shop content lives in content/shop.json and content/settings.json.
+   Edit it from the admin page (yoursite/admin), not here. */
+const CURRENCY = "zł";
+let ARTWORKS = [];
+const ARTWORKS_COUNT_BY_KIND = {};
+const STYLES = {ink:["mountains","bamboo","boat","plum"], pebble:["family","birds","flowers","love"]};
+const KIND_NAME = {ink:"Ink wash painting", pebble:"Pebble art"};
+
+/* ---------- placeholder pictures (replace with real photos later) ---------- */
+function rng(seed){let s=(seed*9301+49297)%233280;return()=>{s=(s*9301+49297)%233280;return s/233280}}
+function inkWash(ctx,W,H,r,seed,style){
+  ctx.fillStyle="#f5f1e8";ctx.fillRect(0,0,W,H);
+  if(style==="mountains"||style==="boat"){
+    for(let l=0;l<4;l++){
+      const base=H*(0.45+l*0.13), shade=200-l*45;
+      ctx.beginPath();ctx.moveTo(0,H);
+      let y=base;
+      for(let x=0;x<=W;x+=W/60){y=base-Math.abs(Math.sin(x*0.006+l*2+seed))*H*(0.18-l*0.025)-r()*8;ctx.lineTo(x,y)}
+      ctx.lineTo(W,H);ctx.closePath();
+      const g=ctx.createLinearGradient(0,base-H*0.2,0,base+H*0.15);
+      g.addColorStop(0,`rgba(${shade-150<0?20:shade-150},${shade-150<0?20:shade-150},${shade-140<0?24:shade-140},${0.35+l*0.15})`);
+      g.addColorStop(1,"rgba(245,241,232,0)");ctx.fillStyle=g;ctx.fill();
+    }
+    if(style==="boat"){
+      ctx.fillStyle="rgba(25,25,28,.85)";ctx.beginPath();ctx.ellipse(W*0.6,H*0.8,W*0.07,H*0.012,0,0,Math.PI);ctx.fill();
+      ctx.strokeStyle="rgba(25,25,28,.8)";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(W*0.6,H*0.8);ctx.lineTo(W*0.6,H*0.72);ctx.stroke();
+    }
+  } else if(style==="bamboo"){
+    for(let s=0;s<3;s++){
+      const x=W*(0.3+s*0.2)+r()*20; ctx.strokeStyle=`rgba(25,25,28,${0.55+s*0.15})`;ctx.lineWidth=10-s*2;
+      for(let y=H;y>H*0.05;y-=H*0.12){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(r()-.5)*6,y-H*0.11);ctx.stroke()}
+      for(let k=0;k<7;k++){const ly=H*(0.1+r()*0.6), dir=r()>.5?1:-1;ctx.fillStyle=`rgba(25,25,28,${0.4+r()*0.5})`;ctx.beginPath();ctx.ellipse(x+dir*W*0.07,ly,W*0.08,H*0.012,dir*0.5,0,6.28);ctx.fill()}
+    }
+  } else { // plum blossom
+    ctx.strokeStyle="rgba(25,25,28,.9)";ctx.lineCap="round";
+    const branch=(x,y,a,len,w,d)=>{if(d>5||len<12)return;const x2=x+Math.cos(a)*len,y2=y+Math.sin(a)*len;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();
+      if(d>1&&r()>.4){ctx.fillStyle=`rgba(214,64,43,${0.6+r()*0.4})`;for(let p=0;p<5;p++){ctx.beginPath();ctx.arc(x2+Math.cos(p*1.26)*7,y2+Math.sin(p*1.26)*7,6,0,6.28);ctx.fill()}}
+      branch(x2,y2,a-0.4-r()*0.4,len*0.72,w*0.65,d+1);branch(x2,y2,a+0.3+r()*0.4,len*0.68,w*0.65,d+1)};
+    branch(W*0.1,H*0.95,-1.1,H*0.28,16,0);
+  }
+  // red seal
+  ctx.fillStyle="#d6402b";ctx.fillRect(W*0.82,H*0.08,W*0.07,W*0.07);
+  ctx.fillStyle="#f5f1e8";ctx.fillRect(W*0.835,H*0.08+W*0.015,W*0.04,W*0.04);ctx.fillStyle="#d6402b";ctx.fillRect(W*0.845,H*0.08+W*0.025,W*0.02,W*0.02);
+}
+function pebble(ctx,x,y,rx,ry,color,rot){
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+  ctx.fillStyle="rgba(0,0,0,.18)";ctx.beginPath();ctx.ellipse(3,4,rx,ry,0,0,6.28);ctx.fill();
+  const g=ctx.createRadialGradient(-rx*.35,-ry*.4,1,0,0,Math.max(rx,ry));g.addColorStop(0,"#ffffffaa");g.addColorStop(.25,color);g.addColorStop(1,color);
+  ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,6.28);ctx.fill();ctx.restore();
+}
+function pebbleArt(ctx,W,H,r,seed,style){
+  ctx.fillStyle="#efe8dc";ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle="#c9bda8";ctx.lineWidth=W*0.03;ctx.strokeRect(W*0.04,H*0.04,W*0.92,H*0.92);
+  const cols=["#3d5a80","#ee6c4d","#98c1d9","#e0b04a","#6a994e","#bc4749","#8d6e63","#7b8794","#f2cc8f"];
+  const c=()=>cols[Math.floor(r()*cols.length)];
+  ctx.strokeStyle="#5b4636";ctx.lineCap="round";
+  if(style==="family"){
+    ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(W*0.5,H*0.86);ctx.quadraticCurveTo(W*0.48,H*0.5,W*0.3,H*0.25);ctx.moveTo(W*0.49,H*0.5);ctx.quadraticCurveTo(W*0.6,H*0.35,W*0.72,H*0.22);ctx.stroke();
+    for(let i=0;i<14;i++)pebble(ctx,W*(0.2+r()*0.6),H*(0.12+r()*0.25),W*0.035,W*0.025,["#6a994e","#a7c957","#386641"][i%3],r()*3);
+    const xs=[0.2,0.32,0.66,0.78],hs=[1,1,0.75,0.6];
+    xs.forEach((x,i)=>{const s=hs[i];pebble(ctx,W*x,H*(0.86-0.2*s),W*0.035*s,W*0.035*s,"#7b8794",0);pebble(ctx,W*x,H*(0.86-0.1*s),W*0.045*s,H*0.06*s,c(),0);
+      ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(W*x-6,H*0.86-2);ctx.lineTo(W*x-8,H*0.9);ctx.moveTo(W*x+6,H*0.86-2);ctx.lineTo(W*x+8,H*0.9);ctx.stroke()});
+  } else if(style==="flowers"){
+    for(let i=0;i<4;i++){const x=W*(0.2+i*0.2),top=H*(0.35+r()*0.2);ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,H*0.86);ctx.quadraticCurveTo(x+(r()-.5)*40,(H*0.86+top)/2,x,top);ctx.stroke();
+      const pc=c();for(let p=0;p<6;p++)pebble(ctx,x+Math.cos(p*1.05)*W*0.045,top+Math.sin(p*1.05)*W*0.045,W*0.03,W*0.02,pc,p*1.05);pebble(ctx,x,top,W*0.022,W*0.022,"#e0b04a",0);
+      pebble(ctx,x+12,(H*0.86+top)/2,W*0.03,W*0.014,"#6a994e",0.6)}
+  } else { // birds on branch (+heart for love birds)
+    ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(W*0.08,H*0.66);ctx.quadraticCurveTo(W*0.5,H*0.58,W*0.92,H*0.7);ctx.stroke();
+    const n=style==="love"?2:3;
+    for(let i=0;i<n;i++){const x=W*(n===2?0.38+i*0.24:0.28+i*0.22),y=H*0.6-i%2*6,col=c();
+      pebble(ctx,x,y-H*0.06,W*0.075,H*0.055,col,0);pebble(ctx,x+(i%2?-1:1)*W*0.06,y-H*0.12,W*0.04,W*0.04,col,0);
+      ctx.fillStyle="#1d1d1f";ctx.beginPath();ctx.arc(x+(i%2?-1:1)*W*0.07,y-H*0.125,3,0,6.28);ctx.fill();
+      ctx.fillStyle="#e0b04a";ctx.beginPath();ctx.moveTo(x+(i%2?-1:1)*W*0.095,y-H*0.12);ctx.lineTo(x+(i%2?-1:1)*W*0.12,y-H*0.115);ctx.lineTo(x+(i%2?-1:1)*W*0.095,y-H*0.11);ctx.fill()}
+    if(n===2){pebble(ctx,W*0.47,H*0.3,W*0.04,W*0.04,"#bc4749",0);pebble(ctx,W*0.53,H*0.3,W*0.04,W*0.04,"#bc4749",0);pebble(ctx,W*0.5,H*0.345,W*0.04,W*0.03,"#bc4749",0)}
+  }
+}
+function paint(cv,kind,seed,style){const ctx=cv.getContext("2d"),r=rng(seed);(kind==="ink"?inkWash:pebbleArt)(ctx,cv.width,cv.height,r,seed,style)}
+document.querySelectorAll("canvas[data-kind]").forEach(c=>paint(c,c.dataset.kind,+c.dataset.seed,c.dataset.style));
+
+/* ---------- shop ---------- */
+const grid=document.getElementById("grid");
+const money=n=>n.toLocaleString("pl-PL")+" "+CURRENCY;
+function render(f){
+  grid.innerHTML="";
+  ARTWORKS.forEach((a,i)=>{
+    if(f!=="all"&&a.kind!==f)return;
+    const b=document.createElement("button");b.type="button";b.className="card";
+    b.setAttribute("aria-label",`${a.title}, ${KIND_NAME[a.kind]}, ${a.status==="sold"?"sold":money(a.price)}`);
+    b.innerHTML=`<div class="art">${a.photo?`<img src="${a.photo}" alt="${a.title}" loading="lazy">`:'<canvas width="480" height="600"></canvas>'}<span class="tag">${KIND_NAME[a.kind]}</span>${a.status==="sold"?'<span class="tag sold">Sold</span>':""}</div>
+      <div class="meta"><h3>${a.title}</h3><span class="price">${a.status==="sold"?"Sold":money(a.price)}</span><span class="sub">${a.size}</span></div>`;
+    if(!a.photo)paint(b.querySelector("canvas"),a.kind,a.seed,a.style);
+    b.addEventListener("click",()=>openArt(i));
+    grid.appendChild(b);
+  });
+}
+document.querySelectorAll(".chip").forEach(ch=>ch.addEventListener("click",()=>{
+  document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));ch.setAttribute("aria-pressed","true");render(ch.dataset.f)}));
+
+/* ---------- product + checkout ---------- */
+const dlg=document.getElementById("dlg");
+const panes=["paneProduct","paneAddress","panePay"].map(id=>document.getElementById(id));
+const show=id=>panes.forEach(p=>p.hidden=p.id!==id);
+let current=null, order=null;
+const $=id=>document.getElementById(id);
+
+function openArt(i){
+  current=ARTWORKS[i];
+  $("pKind").textContent=KIND_NAME[current.kind];
+  $("pTitle").textContent=current.title;
+  $("pDesc").textContent=current.description||"";
+  $("pSpecs").innerHTML=`<dt>Size</dt><dd>${current.size||""}</dd><dt>Made with</dt><dd>${current.material||""}</dd><dt>Delivery</dt><dd>Posted within 3 days</dd>`;
+  $("pPrice").textContent=current.status==="sold"?"Sold":money(current.price);
+  const tb=$("toAddress");
+  if(current.status==="sold"){tb.textContent="Ask for a similar one";tb.dataset.sold="1"}else{tb.textContent="Buy now";tb.dataset.sold=""}
+  if(current.photo){$("dImg").src=current.photo;$("dImg").alt=current.title;$("dImg").hidden=false;$("dCanvas").hidden=true}
+  else{$("dImg").hidden=true;$("dCanvas").hidden=false;paint($("dCanvas"),current.kind,current.seed,current.style)}
+  show("paneProduct");
+  try{dlg.showModal()}catch(e){dlg.setAttribute("open","")}
+}
+$("toAddress").addEventListener("click",()=>{
+  if($("toAddress").dataset.sold){dlg.close();$("cTopic").value="Something made for me";location.hash="contact";return}
+  $("sTitle").textContent=current.title;$("sPrice").textContent=money(current.price);updateShip();show("paneAddress");$("aName").focus();
+});
+function updateShip(){$("sShip").textContent=$("aCountry").value==="Poland"?"Free":"We'll email you the price"}
+$("aCountry").addEventListener("change",updateShip);
+document.querySelectorAll("[data-back]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.back)));
+$("dClose").addEventListener("click",()=>dlg.close());
+dlg.addEventListener("click",e=>{if(e.target===dlg)dlg.close()});
+
+$("addrForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const ids=["aName","aEmail","aPhone","aStreet","aZip","aCity"];let bad=null;
+  ids.forEach(id=>{const el=$(id),ok=el.value.trim()&&(id!=="aEmail"||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(el.value.trim()));el.setAttribute("aria-invalid",ok?"false":"true");if(!ok&&!bad)bad=el});
+  if(bad){$("aErr").textContent=bad.id==="aEmail"&&bad.value?"Please check your email address.":"Please fill in all the boxes marked above.";bad.focus();return}
+  $("aErr").textContent="";
+  order={number:"INK-"+Date.now().toString(36).slice(-5).toUpperCase(),artwork:current.title,price:money(current.price),
+    name:$("aName").value.trim(),email:$("aEmail").value.trim(),phone:$("aPhone").value.trim(),
+    address:`${$("aStreet").value.trim()}, ${$("aZip").value.trim()} ${$("aCity").value.trim()}, ${$("aCountry").value}`,note:$("aNote").value.trim()};
+  $("orderNo").textContent=order.number;
+  $("pTotal").textContent=money(current.price)+($("aCountry").value==="Poland"?" (free delivery)":" + delivery");
+  const pay=$("payBtn");$("payErr").textContent="";
+  if(current.revolut){pay.href=current.revolut;pay.dataset.ready="1"}else{pay.href="#";pay.dataset.ready=""}
+  // Send the order (with address) to the shop owner through Netlify Forms
+  const sent=await sendForm("order",{"order-number":order.number,artwork:order.artwork,price:order.price,name:order.name,email:order.email,phone:order.phone,address:order.address,note:order.note});
+  $("sendNote").textContent=sent?"We've got your address. Thank you!":"Please also email your order number and address to "+$("emailText").textContent+".";
+  show("panePay");
+});
+$("payBtn").addEventListener("click",e=>{
+  if(!$("payBtn").dataset.ready){e.preventDefault();$("payErr").textContent="Online payment for this piece isn't open yet. Please email us your order number and we'll send you a payment link."}
+});
+
+/* ---------- sending forms (works once the site is on Netlify) ---------- */
+async function sendForm(name,fields){
+  try{
+    const body=new URLSearchParams({"form-name":name,...fields}).toString();
+    const r=await fetch("/",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
+    return r.ok;
+  }catch(e){return false}
+}
+
+/* ---------- contact ---------- */
+const toast=$("toast");
+const say=t=>{toast.textContent=t;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2800)};
+async function copy(text,ok){try{await navigator.clipboard.writeText(text);say(ok)}catch(e){say("Couldn't copy. Please select the text and copy it.")}}
+$("copyEmail").addEventListener("click",()=>copy($("emailText").textContent,"Email copied"));
+document.querySelectorAll("[data-topic]").forEach(a=>a.addEventListener("click",()=>{$("cTopic").value=a.dataset.topic}));
+$("contactForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const n=$("cName").value.trim(),em=$("cEmail").value.trim(),m=$("cMsg").value.trim();
+  if(!n||!em||!m){$("cErr").textContent="Please write your name, email and a message.";return}
+  $("cErr").textContent="";
+  const ok=await sendForm("contact",{name:n,email:em,topic:$("cTopic").value,message:m});
+  if(ok){e.target.reset();say("Thanks! Your message was sent.")}
+  else{$("cErr").textContent="Sorry, it didn't send. Please email us at "+$("emailText").textContent+"."}
+});
+
+/* ---------- load shop content ---------- */
+async function loadJSON(path){try{const r=await fetch(path,{cache:"no-cache"});if(r.ok)return await r.json()}catch(e){}return null}
+(async()=>{
+  const [shop,settings]=await Promise.all([loadJSON("content/shop.json"),loadJSON("content/settings.json")]);
+  ARTWORKS=((shop&&shop.artworks)||[]).map((a,i)=>{const list=STYLES[a.kind]||STYLES.ink;const n=ARTWORKS_COUNT_BY_KIND[a.kind]=(ARTWORKS_COUNT_BY_KIND[a.kind]||0)+1;return {...a,seed:i*7+3,style:list[(n-1)%list.length]}});
+  if(settings){if(settings.email)$("emailText").textContent=settings.email;if(settings.instagram)$("igText").textContent=settings.instagram}
+  if(!ARTWORKS.length)grid.innerHTML='<p class="small">New pieces coming soon.</p>';else render("all");
+})();
+</script>
+</body>
+</html>
