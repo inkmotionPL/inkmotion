@@ -1,0 +1,92 @@
+{
+  "artworks": [
+    {
+      "title": "Misty Mountains",
+      "kind": "ink",
+      "photo": "",
+      "size": "50 × 70 cm",
+      "material": "Black ink on rice paper",
+      "price": 650,
+      "status": "available",
+      "revolut": "",
+      "description": "Soft mountains fading into fog, painted with just ink and water."
+    },
+    {
+      "title": "Little Pebble Family",
+      "kind": "pebble",
+      "photo": "",
+      "size": "24 × 30 cm, framed",
+      "material": "Sea pebbles on paper",
+      "price": 280,
+      "status": "available",
+      "revolut": "",
+      "description": "Four pebble people under a tree. A lovely gift for a new home."
+    },
+    {
+      "title": "Bamboo in the Wind",
+      "kind": "ink",
+      "photo": "",
+      "size": "35 × 50 cm",
+      "material": "Black ink on rice paper",
+      "price": 420,
+      "status": "available",
+      "revolut": "",
+      "description": "Bamboo leaves bending in the breeze, done in quick strokes."
+    },
+    {
+      "title": "Birds on a Branch",
+      "kind": "pebble",
+      "photo": "",
+      "size": "24 × 30 cm, framed",
+      "material": "Sea pebbles on paper",
+      "price": 260,
+      "status": "sold",
+      "revolut": "",
+      "description": "Three little pebble birds sitting close together."
+    },
+    {
+      "title": "Lonely Boat",
+      "kind": "ink",
+      "photo": "",
+      "size": "30 × 40 cm",
+      "material": "Black ink on rice paper",
+      "price": 350,
+      "status": "available",
+      "revolut": "",
+      "description": "A small boat on a quiet lake, with lots of empty space."
+    },
+    {
+      "title": "Pebble Garden",
+      "kind": "pebble",
+      "photo": "",
+      "size": "30 × 40 cm, framed",
+      "material": "Sea pebbles on wood",
+      "price": 340,
+      "status": "available",
+      "revolut": "",
+      "description": "Bright pebble flowers growing in a row."
+    },
+    {
+      "title": "Plum Blossom",
+      "kind": "ink",
+      "photo": "",
+      "size": "35 × 50 cm",
+      "material": "Ink and a touch of red on rice paper",
+      "price": 480,
+      "status": "available",
+      "revolut": "",
+      "description": "A dark branch with small red flowers, a sign of spring."
+    },
+    {
+      "title": "Love Birds",
+      "kind": "pebble",
+      "photo": "",
+      "size": "20 × 25 cm, framed",
+      "material": "Sea pebbles on paper",
+      "price": 220,
+      "status": "available",
+      "revolut": "",
+      "description": "Two pebble birds and a heart. A sweet wedding or anniversary gift."
+    }
+  ]
+}
