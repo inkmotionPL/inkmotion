@@ -280,6 +280,7 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
         <dl class="specs" id="pSpecs"></dl>
         <div class="big" id="pPrice"></div>
         <button class="btn red full" id="toAddress" type="button">Buy now</button>
+        <button class="btn light full" id="shareArt" type="button" style="margin-top:.6em">🔗 Copy link to this piece</button>
         <p class="small">Free delivery in Poland. Made by hand, one of a kind.</p>
       </div>
 
@@ -447,8 +448,11 @@ const show=id=>panes.forEach(p=>p.hidden=p.id!==id);
 let current=null, order=null;
 const $=id=>document.getElementById(id);
 
+const slug=t=>String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ł/g,"l").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const artLink=a=>location.origin+location.pathname+"#art-"+slug(a.title);
 function openArt(i){
   current=ARTWORKS[i];
+  try{history.replaceState(null,"","#art-"+slug(current.title))}catch(e){}
   $("pKind").textContent=KIND_NAME[current.kind];
   $("pTitle").textContent=current.title;
   $("pDesc").textContent=current.description||"";
@@ -509,6 +513,9 @@ function updateShip(){$("sShip").textContent=$("aCountry").value==="Poland"?"Fre
 $("aCountry").addEventListener("change",updateShip);
 document.querySelectorAll("[data-back]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.back)));
 $("dClose").addEventListener("click",()=>dlg.close());
+dlg.addEventListener("close",()=>{if(location.hash.startsWith("#art-")){try{history.replaceState(null,"",location.pathname+"#shop")}catch(e){}}});
+function openFromHash(){const h=decodeURIComponent(location.hash);if(!h.startsWith("#art-"))return;const i=ARTWORKS.findIndex(a=>"#art-"+slug(a.title)===h);if(i<0)return;document.getElementById("shop")&&document.getElementById("shop").scrollIntoView();if(!dlg.open)openArt(i)}
+addEventListener("hashchange",openFromHash);
 dlg.addEventListener("click",e=>{if(e.target===dlg)dlg.close()});
 
 $("addrForm").addEventListener("submit",async e=>{
@@ -549,6 +556,8 @@ const toast=$("toast");
 const say=t=>{toast.textContent=t;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2800)};
 async function copy(text,ok){try{await navigator.clipboard.writeText(text);say(ok)}catch(e){say("Couldn't copy. Please select the text and copy it.")}}
 $("copyEmail").addEventListener("click",()=>copy($("emailText").textContent,"Email copied"));
+$("shareArt").addEventListener("click",async()=>{const b=$("shareArt"),url=artLink(current);let ok=true;try{await navigator.clipboard.writeText(url)}catch(e){ok=false}
+  b.textContent=ok?"✓ Link copied – paste it in Instagram or Facebook":url;setTimeout(()=>{b.textContent="🔗 Copy link to this piece"},4000)});
 document.querySelectorAll("[data-topic]").forEach(a=>a.addEventListener("click",()=>{$("cTopic").value=a.dataset.topic}));
 $("contactForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -566,7 +575,7 @@ async function loadJSON(path){try{const r=await fetch(path,{cache:"no-cache"});i
   const [shop,settings]=await Promise.all([loadJSON("content/shop.json"),loadJSON("content/settings.json")]);
   ARTWORKS=((shop&&shop.artworks)||[]).map((a,i)=>{const list=STYLES[a.kind]||STYLES.ink;const n=ARTWORKS_COUNT_BY_KIND[a.kind]=(ARTWORKS_COUNT_BY_KIND[a.kind]||0)+1;return {...a,seed:i*7+3,style:list[(n-1)%list.length]}});
   if(settings){if(settings.email)$("emailText").textContent=settings.email;if(settings.instagram)$("igText").textContent=settings.instagram}
-  if(!ARTWORKS.length)grid.innerHTML='<p class="small">New pieces coming soon.</p>';else render("all");
+  if(!ARTWORKS.length)grid.innerHTML='<p class="small">New pieces coming soon.</p>';else{render("all");openFromHash()}
 })();
 </script>
 </body>
