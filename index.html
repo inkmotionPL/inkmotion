@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-.card .art img[src],.dlg .art img[src]{object-fit:contain;background:var(--paper)}
 /* Layout idea: a simple, friendly gallery. Rice-paper white, sumi-ink black, one red seal colour. Rounded "cartoon" headings. */
 :root{
   --paper:#f7f5f0;
@@ -108,6 +107,7 @@ details p{margin:0 0 16px;color:var(--ink-soft)}
 
 /* forms */
 [hidden]{display:none!important}
+.card .art img[src],.dlg .art img[src]{object-fit:contain;background:var(--paper)}
 form{display:grid;gap:12px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:520px){.two{grid-template-columns:1fr}}
@@ -275,16 +275,17 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
             <div><label for="aName">Full name</label><input id="aName" autocomplete="name" required></div>
             <div><label for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email" required></div>
           </div>
-          <div><label for="aPhone">Phone (for the courier)</label><input id="aPhone" type="tel" autocomplete="tel" required></div>
-          <div><label for="aStreet">Street and house number</label><input id="aStreet" autocomplete="street-address" required></div>
-          <div class="two">
-            <div><label for="aZip">Postcode</label><input id="aZip" autocomplete="postal-code" required></div>
-            <div><label for="aCity">City</label><input id="aCity" autocomplete="address-level2" required></div>
-          </div>
+          <div><label for="aPhone">Phone (for the courier)</label><input id="aPhone" type="tel" autocomplete="tel" placeholder="e.g. +48 600 123 456" required></div>
           <div><label for="aCountry">Country</label>
             <select id="aCountry" autocomplete="country-name">
               <option>Poland</option><option>Germany</option><option>Czech Republic</option><option>Slovakia</option><option>Lithuania</option><option>Other EU country</option><option>Outside the EU</option>
             </select></div>
+          <div class="two">
+            <div><label for="aZip">Postcode</label><input id="aZip" autocomplete="postal-code" inputmode="numeric" placeholder="e.g. 30-001" required></div>
+            <div><label for="aCity">City</label><input id="aCity" autocomplete="address-level2" list="cityList" required><datalist id="cityList"></datalist></div>
+          </div>
+          <p class="small" id="zipHint" aria-live="polite"></p>
+          <div><label for="aStreet">Street and house number</label><input id="aStreet" autocomplete="street-address" list="streetList" placeholder="Start typing your street" required><datalist id="streetList"></datalist></div>
           <div><label for="aNote">Note (optional)</label><textarea id="aNote" placeholder="e.g. Leave with the neighbour, or a gift message"></textarea></div>
           <div class="summary"><span>Delivery</span><span id="sShip">Free</span></div>
           <p class="err" id="aErr" role="alert"></p>
@@ -446,6 +447,46 @@ $("toAddress").addEventListener("click",()=>{
   if($("toAddress").dataset.sold){dlg.close();$("cTopic").value="Something made for me";location.hash="contact";return}
   $("sTitle").textContent=current.title;$("sPrice").textContent=money(current.price);updateShip();show("paneAddress");$("aName").focus();
 });
+/* ---------- postcode check + address suggestions ---------- */
+const ZIP={
+  "Poland":{re:/^\d{2}-\d{3}$/,ex:"30-001"},
+  "Germany":{re:/^\d{5}$/,ex:"10115"},
+  "Czech Republic":{re:/^\d{3} ?\d{2}$/,ex:"110 00"},
+  "Slovakia":{re:/^\d{3} ?\d{2}$/,ex:"811 01"},
+  "Lithuania":{re:/^(LT-?)?\d{5}$/i,ex:"LT-01100"}
+};
+const zipRule=()=>ZIP[$("aCountry").value]||{re:/^[A-Za-z0-9 -]{3,10}$/,ex:"your local postcode"};
+let cityAuto=false, lastLookup="";
+function fillList(id,items){$(id).innerHTML=[...new Set(items)].slice(0,400).map(v=>`<option value="${String(v).replace(/"/g,"&quot;")}">`).join("")}
+async function lookupPL(code){
+  if(code===lastLookup)return; lastLookup=code;
+  const hint=$("zipHint"); hint.textContent="Looking up your postcode…";
+  try{
+    const r=await fetch("/api/pna/"+code);
+    if(r.status===404){hint.textContent="We couldn't find this postcode. Please check it.";return}
+    if(!r.ok)throw 0;
+    const d=await r.json(); const locs=d.localities||[];
+    if(!locs.length){hint.textContent="We couldn't find this postcode. Please check it.";return}
+    const cities=locs.map(l=>l.locality).filter(Boolean);
+    fillList("cityList",cities);
+    if(!$("aCity").value.trim()||cityAuto){$("aCity").value=cities[0]||"";cityAuto=true}
+    const streets=locs.flatMap(l=>(l.streets||[]).map(st=>typeof st==="string"?st:(st.street||st.name||st.ulica||""))).filter(Boolean);
+    fillList("streetList",streets);
+    hint.textContent="✓ "+[...new Set(cities)].slice(0,3).join(", ")+(streets.length?" · start typing your street to see suggestions":"");
+  }catch(e){hint.textContent=""}
+}
+$("aZip").addEventListener("input",e=>{
+  const el=e.target;
+  if($("aCountry").value==="Poland"){
+    const d=el.value.replace(/\D/g,"").slice(0,5);
+    el.value=d.length>2?d.slice(0,2)+"-"+d.slice(2):d;
+    if(/^\d{2}-\d{3}$/.test(el.value))lookupPL(el.value); else $("zipHint").textContent="";
+  }
+  el.setAttribute("aria-invalid","false");
+});
+$("aZip").addEventListener("blur",e=>{const v=e.target.value.trim();if(v&&!zipRule().re.test(v)){e.target.setAttribute("aria-invalid","true");$("zipHint").textContent="This doesn't look like a valid postcode. Example: "+zipRule().ex}});
+$("aCity").addEventListener("input",()=>{cityAuto=false});
+$("aCountry").addEventListener("change",()=>{$("aZip").placeholder="e.g. "+zipRule().ex;$("aZip").inputMode=$("aCountry").value==="Lithuania"||!ZIP[$("aCountry").value]?"text":"numeric";$("zipHint").textContent="";lastLookup="";fillList("cityList",[]);fillList("streetList",[])});
 function updateShip(){$("sShip").textContent=$("aCountry").value==="Poland"?"Free":"We'll email you the price"}
 $("aCountry").addEventListener("change",updateShip);
 document.querySelectorAll("[data-back]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.back)));
@@ -455,8 +496,10 @@ dlg.addEventListener("click",e=>{if(e.target===dlg)dlg.close()});
 $("addrForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const ids=["aName","aEmail","aPhone","aStreet","aZip","aCity"];let bad=null;
-  ids.forEach(id=>{const el=$(id),ok=el.value.trim()&&(id!=="aEmail"||/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(el.value.trim()));el.setAttribute("aria-invalid",ok?"false":"true");if(!ok&&!bad)bad=el});
-  if(bad){$("aErr").textContent=bad.id==="aEmail"&&bad.value?"Please check your email address.":"Please fill in all the boxes marked above.";bad.focus();return}
+  const checks={aEmail:v=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v),aPhone:v=>/^\+?[\d\s()-]{7,}$/.test(v),aZip:v=>zipRule().re.test(v)};
+  const msgs={aEmail:"Please check your email address.",aPhone:"Please check your phone number.",aZip:"Please check your postcode. Example: "+zipRule().ex};
+  ids.forEach(id=>{const el=$(id),v=el.value.trim(),ok=!!v&&(!checks[id]||checks[id](v));el.setAttribute("aria-invalid",ok?"false":"true");if(!ok&&!bad)bad=el});
+  if(bad){$("aErr").textContent=(bad.value.trim()&&msgs[bad.id])||"Please fill in all the boxes marked above.";bad.focus();return}
   $("aErr").textContent="";
   order={number:"INK-"+Date.now().toString(36).slice(-5).toUpperCase(),artwork:current.title,price:money(current.price),
     name:$("aName").value.trim(),email:$("aEmail").value.trim(),phone:$("aPhone").value.trim(),
