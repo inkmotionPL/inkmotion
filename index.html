@@ -7,6 +7,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<script>/* postcode lookup v2 (direct to PolishData). Replaces the older lookup once the page has loaded. */
+addEventListener("load",()=>{window.lookupPL=async function(code){
+  if(code===lastLookup)return; lastLookup=code;
+  const hint=$("zipHint"); hint.textContent="Looking up your postcode…";
+  try{
+    const r=await fetch("https://polishdata.eu/api/v1/postal-codes/"+code+"?per_page=100");
+    if(r.status===404){hint.textContent="We couldn't find this postcode. Please check it.";return}
+    if(!r.ok)throw 0;
+    const d=await r.json(); const rows=d.data||[];
+    if(!rows.length){hint.textContent="We couldn't find this postcode. Please check it.";return}
+    const cities=[...new Set(rows.map(x=>x.locality).filter(Boolean))];
+    fillList("cityList",cities);
+    if(!$("aCity").value.trim()||cityAuto){$("aCity").value=cities[0]||"";cityAuto=true}
+    const streets=[...new Set(rows.map(x=>x.street).filter(Boolean))];
+    fillList("streetList",streets);
+    hint.textContent="✓ "+cities.slice(0,3).join(", ")+(streets.length?" · start typing your street to see suggestions":"");
+  }catch(e){hint.textContent=""}
+}});</script>
 <style>
 /* Layout idea: a simple, friendly gallery. Rice-paper white, sumi-ink black, one red seal colour. Rounded "cartoon" headings. */
 :root{
