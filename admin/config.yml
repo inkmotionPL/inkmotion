@@ -1,0 +1,53 @@
+# Inkmotion editing panel (Decap CMS)
+# >>> Change the next line to your own GitHub username / repository name <<<
+backend:
+  name: github
+  repo: inkmotionPL/inkmotion
+  branch: main
+
+site_url: /
+media_folder: images/uploads
+public_folder: /images/uploads
+
+collections:
+  - name: shop
+    label: My shop
+    editor:
+      preview: false
+    files:
+      - name: artworks
+        label: Artworks
+        file: content/shop.json
+        fields:
+          - label: Artworks
+            name: artworks
+            label_singular: artwork
+            widget: list
+            summary: "{{fields.title}} · {{fields.price}} zł · {{fields.status}}"
+            fields:
+              - {label: "Title", name: title, widget: string}
+              - label: "Type"
+                name: kind
+                widget: select
+                options:
+                  - {label: "Ink wash painting", value: ink}
+                  - {label: "Pebble art", value: pebble}
+              - {label: "Photo", name: photo, widget: image, required: false, hint: "A clear photo of the artwork. Portrait (tall) photos look best."}
+              - {label: "Size", name: size, widget: string, hint: "e.g. 35 × 50 cm, framed"}
+              - {label: "Made with", name: material, widget: string, hint: "e.g. Black ink on rice paper"}
+              - {label: "Price (zł)", name: price, widget: number, value_type: int, min: 0}
+              - label: "Status"
+                name: status
+                widget: select
+                default: available
+                options:
+                  - {label: "For sale", value: available}
+                  - {label: "Sold", value: sold}
+              - {label: "Revolut payment link", name: revolut, widget: string, required: false, hint: "Paste the Revolut Business payment link for this piece. Leave empty until you have it."}
+              - {label: "Short description", name: description, widget: text}
+      - name: settings
+        label: Contact details
+        file: content/settings.json
+        fields:
+          - {label: "Email shown on the site", name: email, widget: string}
+          - {label: "Instagram", name: instagram, widget: string, required: false}
